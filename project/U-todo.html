@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <title>Task Manager</title>
+    <style>
+        /* Existing CSS */
+        body {
+            background-color: #000000;
+            color: white;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+        }
+
+        .top-bar {
+            width: 100%;
+            background-color: #474bc5;
+            color: white;
+            padding: 15px 0;
+            padding-left: 20px;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+        }
+
+        .top-section {
+            display: flex;
+            flex: 1;
+            padding: 20px;
+            flex-grow: 1;
+        }
+
+        .current-tasks {
+            flex: 1;
+            padding-right: 20px;
+            overflow-y: auto;
+        }
+
+        .right-column {
+            flex: 1;
+            background-color: #333333;
+            padding: 20px;
+            margin-left: 10px;
+            border-radius: 5px;
+        }
+
+        .no-tasks-message {
+            color: #888888;
+            font-style: italic;
+            margin-top: 10px;
+        }
+
+        .task-list-item {
+            background-color: #000000;
+            color: white;
+            font-size: 25px;
+            padding: 10px;
+            margin-bottom: 5px;
+            border-radius: 5px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .task-input {
+            width: 50%;
+            padding: 10px;
+            font-size: 20px;
+            border: none;
+            border-radius: 5px;
+            margin-bottom: 10px;
+            background-color: #444343;
+            color: white;
+            display: none;
+            margin-left: 400px;
+        }
+        .create-task-btn, .confirm-btn {
+            padding: 10px 20px;
+            font-size: 20px;
+            width: 50%;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-left: 400px;
+            flex-grow: 1;
+        }
+        .create-task-btn {
+            background-color: #474bc5;
+        }
+        .confirm-btn {
+            background-color: #4CAF50;
+            display: none;
+        }
+        .confirm-btn:hover, .create-task-btn:hover {
+            background-color: #3743b5;
+        }
+
+        .bottom-container {
+            background-color: #000000;
+            padding: 20px;
+            text-align: center;
+            color: white;
+        }
+
+        .finished-tasks {
+            padding-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    
+    <div class="top-bar">U-ToDo</div>
+
+    <div class="container">
+        <div class="top-section">
+            <div class="current-tasks">
+                <h2>Current Tasks</h2>
+                <p id="noTasksMessage" class="no-tasks-message">No current tasks</p>
+                <ul id="taskList" class="task-list"></ul>
+            </div>
+
+            <div id="right-column" class="right-column">
+                <h2>Additional Information</h2>
+                <p id="taskMessage">Select a task to view details here.</p>
+                <p id="taskDate">Date: </p>
+                <p id="taskTime">Time: </p>
+                <p id="taskSearchLink">Search: <a id="googleSearchLink" href="#" target="_blank">Google this task</a></p>
+            </div>
+        </div>
+
+        <div class="task-creation">
+            <input type="text" id="taskInput" class="task-input" placeholder="Enter the task here">
+            <input type="datetime-local" id="dueDateInput" class="task-input" style="display: none;">
+            <button class="create-task-btn" onclick="showTaskInput()">+ Create Task</button>
+            <button id="confirmBtn" class="confirm-btn" onclick="addTask()">Add Task</button>
+        </div>
+
+        <div class="bottom-container">
+            <h3>Finished Tasks</h3>
+            <ul id="finishedTasksList" class="task-list finished-tasks"></ul>
+        </div>
+    </div>
+
+    <script>
+        let lastCheckedTask = null;
+        let awaitingReplacementTask = false;
+
+        function showTaskInput() {
+            document.getElementById('taskInput').style.display = 'block';
+            document.getElementById('dueDateInput').style.display = 'block';
+            document.getElementById('confirmBtn').style.display = 'block';
+            document.querySelector('.create-task-btn').style.display = 'none';
+        }
+
+        function addTask() {
+            const taskInput = document.getElementById('taskInput').value;
+            const dueDateInput = document.getElementById('dueDateInput').value;
+
+            if (taskInput && dueDateInput) {
+                const taskList = document.getElementById('taskList');
+                const noTasksMessage = document.getElementById('noTasksMessage');
+                if (noTasksMessage) {
+                    noTasksMessage.style.display = 'none';
+                }
+
+                if (awaitingReplacementTask && lastCheckedTask) {
+                    moveToFinished(lastCheckedTask);
+                    awaitingReplacementTask = false;
+                    lastCheckedTask = null;
+                }
+
+                const listItem = document.createElement('li');
+                listItem.className = 'task-list-item';
+
+                const taskLink = document.createElement('a');
+                taskLink.href = '#';
+                taskLink.innerText = `${taskInput} (Due: ${dueDateInput})`;
+                taskLink.onclick = function() {
+                    showTaskMessage(taskInput, dueDateInput);
+                };
+
+                const checkbox = document.createElement('input');
+                checkbox.type = 'checkbox';
+                checkbox.className = 'task-checkbox';
+                checkbox.onchange = function() {
+                    lastCheckedTask = listItem;
+                    awaitingReplacementTask = true;
+                    alert("Please create a new task to replace this task.");
+                };
+
+                listItem.appendChild(taskLink);
+                listItem.appendChild(checkbox);
+                taskList.appendChild(listItem);
+
+                scheduleReminder(taskInput, dueDateInput);
+
+                document.getElementById('taskInput').value = '';
+                document.getElementById('dueDateInput').value = '';
+                document.getElementById('taskInput').style.display = 'none';
+                document.getElementById('dueDateInput').style.display = 'none';
+                document.getElementById('confirmBtn').style.display = 'none';
+                document.querySelector('.create-task-btn').style.display = 'block';
+            } else {
+                alert("Please enter a task and a due date.");
+            }
+        }
+
+        function scheduleReminder(task, dueDate) {
+            const taskDueTime = new Date(dueDate).getTime();
+            const now = new Date().getTime();
+            const timeUntilReminder = taskDueTime - now;
+
+            if (timeUntilReminder > 0) {
+                setTimeout(() => {
+                    alert(`Reminder: It's time to complete your task - "${task}"!`);
+                }, timeUntilReminder);
+            }
+        }
+
+        function showTaskMessage(task, dueDate) {
+            const taskMessage = document.getElementById('taskMessage');
+            taskMessage.innerText = `Details for task: ${task}`;
+
+            const taskDate = new Date(dueDate);
+            document.getElementById('taskDate').innerText = `Date: ${taskDate.toLocaleDateString()}`;
+            document.getElementById('taskTime').innerText = `Time: ${taskDate.toLocaleTimeString()}`;
+
+            const googleSearchLink = document.getElementById('googleSearchLink');
+            googleSearchLink.href = `https://www.google.com/search?q=${encodeURIComponent(task)}`;
+            googleSearchLink.innerText = `Google: ${task}`;
+        }
+
+        function moveToFinished(taskItem) {
+            const finishedTasksList = document.getElementById('finishedTasksList');
+            finishedTasksList.appendChild(taskItem);
+            taskItem.querySelector('.task-checkbox').disabled = true;
+        }
+    </script>
+</body>
+</html>
